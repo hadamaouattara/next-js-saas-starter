@@ -1,0 +1,84 @@
+{
+  "name": "exonov-quantum",
+  "displayName": "Exonov Quantum",
+  "description": "Advanced AI & Quantum Computing SaaS Platform",
+  "version": "1.0.0",
+  "homepage": "https://next-js-saas-starter-six-liard.vercel.app/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hadamaouattara/next-js-saas-starter.git"
+  },
+  "author": {
+    "name": "Hadama Ouattara",
+    "email": "ohadama@gmail.com",
+    "github": "hadamaouattara"
+  },
+  "company": {
+    "name": "Exonov",
+    "website": "https://exonov.com",
+    "industry": "AI & Quantum Computing"
+  },
+  "features": {
+    "quantum": {
+      "circuits": true,
+      "optimization": true,
+      "simulation": true,
+      "algorithms": ["QAOA", "VQE", "Grover", "Shor"]
+    },
+    "ai": {
+      "analytics": true,
+      "prediction": true,
+      "nlp": true,
+      "computer_vision": true
+    },
+    "saas": {
+      "authentication": true,
+      "subscriptions": true,
+      "rbac": true,
+      "multi_tenant": true,
+      "api": true
+    },
+    "integrations": {
+      "stripe": true,
+      "n8n": true,
+      "quantum_apis": ["IBM Qiskit", "Google Cirq", "AWS Braket"],
+      "ai_services": ["OpenAI", "Anthropic", "Google AI"]
+    }
+  },
+  "tech_stack": {
+    "frontend": "Next.js",
+    "backend": "Node.js",
+    "database": "PostgreSQL",
+    "orm": "Drizzle",
+    "ui": "shadcn/ui",
+    "payments": "Stripe",
+    "automation": "n8n",
+    "quantum": "Qiskit",
+    "ai": "OpenAI API"
+  },
+  "environments": {
+    "development": "http://localhost:3000",
+    "staging": "https://staging.exonov-quantum.com",
+    "production": "https://exonov-quantum.com"
+  },
+  "branding": {
+    "primary_color": "#6366f1",
+    "secondary_color": "#8b5cf6",
+    "accent_color": "#06b6d4",
+    "theme": "quantum-gradient",
+    "logo": "/assets/exonov-quantum-logo.svg",
+    "favicon": "/assets/favicon-quantum.ico"
+  },
+  "license": "MIT",
+  "keywords": [
+    "quantum-computing",
+    "artificial-intelligence",
+    "saas-platform",
+    "next.js",
+    "qiskit",
+    "optimization",
+    "analytics",
+    "automation",
+    "enterprise"
+  ]
+}
