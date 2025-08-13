@@ -1,325 +1,369 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ExonovQuantumAPI } from '../pages/api/quantum';
 
-// Import des composants UI (supposés être disponibles via shadcn/ui)
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { 
-  Activity, 
-  Cpu, 
-  TrendingUp, 
-  Zap, 
-  CheckCircle, 
-  XCircle,
-  Clock,
-  DollarSign
-} from 'lucide-react';
-
-interface WorkflowStatus {
-  id: string;
-  name: string;
-  active: boolean;
-  executions: number;
-  success_rate: number;
-  last_execution?: string;
+// Types pour l'API quantique
+interface QuantumProvider {
+  provider: string;
+  up: boolean;
+  queue_length: number;
+  ping_ms: number;
+  credits: number;
 }
 
-interface QuantumMetrics {
-  total_jobs: number;
-  successful_jobs: number;
-  failed_jobs: number;
-  avg_execution_time: number;
-  credits_used: number;
-  credits_remaining: number;
+interface PortfolioOptimization {
+  tickers: string[];
+  risk_tolerance: number;
+  user_id: string;
+  subscription_tier: 'free' | 'premium' | 'enterprise';
+}
+
+interface OptimizationResult {
+  portfolio_optimization: {
+    allocations: Record<string, number>;
+    expected_return: number;
+    risk: number;
+    sharpe_ratio: number;
+  };
+  execution_time: number;
+  provider_used: string;
+  backend_used: string;
 }
 
 const ExonovQuantumDashboard: React.FC = () => {
-  const [quantumAPI] = useState(() => new ExonovQuantumAPI());
-  const [workflows, setWorkflows] = useState<WorkflowStatus[]>([]);
-  const [metrics, setMetrics] = useState<QuantumMetrics | null>(null);
-  const [healthStatus, setHealthStatus] = useState<any[]>([]);
+  const [providers, setProviders] = useState<QuantumProvider[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [portfolioResult, setPortfolioResult] = useState<OptimizationResult | null>(null);
+  const [optimizing, setOptimizing] = useState(false);
 
-  // Simuler les données des workflows n8n
-  useEffect(() => {
-    const loadDashboardData = async () => {
-      try {
-        // Simuler les workflows basés sur tes workflows réels
-        const mockWorkflows: WorkflowStatus[] = [
-          {
-            id: '53vq9YCYE8EbaSMX',
-            name: '🔬 Quantum | 01 - Health Check',
-            active: true,
-            executions: 1440, // 15min intervals * 24h * 4 days
-            success_rate: 98.5,
-            last_execution: new Date(Date.now() - 15 * 60 * 1000).toISOString()
-          },
-          {
-            id: '2N2Wfc8SKNMetreD',
-            name: '🔬 Quantum | 02 - Credits Probe',
-            active: true,
-            executions: 288, // Hourly checks
-            success_rate: 95.2,
-            last_execution: new Date(Date.now() - 60 * 60 * 1000).toISOString()
-          },
-          {
-            id: 'enLAY2ZMnMdjlKCT',
-            name: '🔬 Quantum | 03 - Router',
-            active: true,
-            executions: 156,
-            success_rate: 92.8,
-            last_execution: new Date(Date.now() - 5 * 60 * 1000).toISOString()
-          },
-          {
-            id: '3VfSxlrvdQ3vl0CD',
-            name: '🔬 Quantum | 05 - Portfolio QAOA',
-            active: true,
-            executions: 45,
-            success_rate: 88.9,
-            last_execution: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            id: 'M2Hb9PexlWAB8zu9',
-            name: '🔬 Quantum | 04 - Job Runner',
-            active: true,
-            executions: 89,
-            success_rate: 91.0,
-            last_execution: new Date(Date.now() - 30 * 60 * 1000).toISOString()
-          }
-        ];
+  // Configuration par défaut pour les tests
+  const [portfolioConfig, setPortfolioConfig] = useState<PortfolioOptimization>({
+    tickers: ['AAPL', 'GOOGL', 'MSFT'],
+    risk_tolerance: 0.5,
+    user_id: 'demo-user',
+    subscription_tier: 'premium'
+  });
 
-        const mockMetrics: QuantumMetrics = {
-          total_jobs: 2018,
-          successful_jobs: 1852,
-          failed_jobs: 166,
-          avg_execution_time: 847, // ms
-          credits_used: 1247,
-          credits_remaining: 8753
-        };
-
-        setWorkflows(mockWorkflows);
-        setMetrics(mockMetrics);
-
-        // Charger le statut de santé quantique
-        const health = await quantumAPI.getQuantumHealth();
-        setHealthStatus(health);
-
-      } catch (error) {
-        console.error('Erreur lors du chargement des données:', error);
-      } finally {
-        setLoading(false);
+  // Charger le statut des providers quantiques
+  const loadQuantumHealth = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/quantum?action=health');
+      const data = await response.json();
+      
+      if (data.success) {
+        setProviders(data.data || []);
+      } else {
+        setError('Erreur lors du chargement du statut quantique');
       }
-    };
+    } catch (err) {
+      setError('Connexion aux providers quantiques impossible');
+      // Données de fallback pour demo
+      setProviders([
+        { provider: 'IBM Quantum', up: true, queue_length: 3, ping_ms: 245, credits: 8500 },
+        { provider: 'AWS Braket', up: true, queue_length: 1, ping_ms: 180, credits: 12000 },
+        { provider: 'Azure Quantum', up: false, queue_length: 0, ping_ms: 999, credits: 5500 },
+        { provider: 'Google Quantum AI', up: true, queue_length: 2, ping_ms: 165, credits: 15000 }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadDashboardData();
-    
-    // Refresh toutes les 30 secondes
-    const interval = setInterval(loadDashboardData, 30000);
+  // Optimiser le portfolio
+  const optimizePortfolio = async () => {
+    try {
+      setOptimizing(true);
+      setError(null);
+
+      const response = await fetch('/api/quantum', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'optimize_portfolio',
+          ...portfolioConfig
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setPortfolioResult(data.data);
+      } else {
+        setError('Erreur lors de l\'optimisation');
+      }
+    } catch (err) {
+      setError('Optimisation échouée');
+    } finally {
+      setOptimizing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadQuantumHealth();
+    const interval = setInterval(loadQuantumHealth, 30000); // Refresh toutes les 30s
     return () => clearInterval(interval);
-  }, [quantumAPI]);
+  }, []);
 
-  const getStatusIcon = (active: boolean, success_rate: number) => {
-    if (!active) return <XCircle className="h-4 w-4 text-gray-400" />;
-    if (success_rate >= 95) return <CheckCircle className="h-4 w-4 text-green-500" />;
-    if (success_rate >= 85) return <Clock className="h-4 w-4 text-yellow-500" />;
-    return <XCircle className="h-4 w-4 text-red-500" />;
-  };
-
-  const getStatusColor = (success_rate: number) => {
-    if (success_rate >= 95) return 'bg-green-100 text-green-800';
-    if (success_rate >= 85) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
-  };
-
-  const formatTimeAgo = (timestamp: string) => {
-    const diff = Date.now() - new Date(timestamp).getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(minutes / 60);
-    
-    if (hours > 0) return `${hours}h ago`;
-    return `${minutes}m ago`;
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2">Loading Exonov Quantum Dashboard...</span>
-      </div>
-    );
-  }
+  const getStatusColor = (up: boolean) => up ? 'bg-green-500' : 'bg-red-500';
+  const getStatusText = (up: boolean) => up ? 'En ligne' : 'Hors ligne';
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg">
-            <Cpu className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Exonov Quantum Control Center
-            </h1>
-            <p className="text-gray-600">Real-time monitoring & quantum workflow management</p>
-          </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            🔬 Exonov Quantum Control Center
+          </h1>
+          <p className="text-lg text-gray-600">
+            Advanced AI & Quantum Computing Platform
+          </p>
         </div>
-        <Badge className="bg-green-100 text-green-800 px-3 py-1">
-          All Systems Operational
-        </Badge>
-      </div>
 
-      {/* Metrics Overview */}
-      {metrics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Quantum Jobs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <TrendingUp className="h-5 w-5 text-blue-600" />
-                <span className="text-2xl font-bold">{metrics.total_jobs.toLocaleString()}</span>
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <span className="text-red-400">⚠️</span>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Success Rate</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <span className="text-2xl font-bold">
-                  {((metrics.successful_jobs / metrics.total_jobs) * 100).toFixed(1)}%
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Avg Execution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <Zap className="h-5 w-5 text-yellow-600" />
-                <span className="text-2xl font-bold">{metrics.avg_execution_time}ms</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Credits Remaining</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <DollarSign className="h-5 w-5 text-purple-600" />
-                <span className="text-2xl font-bold">{metrics.credits_remaining.toLocaleString()}</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* n8n Workflows Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Activity className="h-5 w-5" />
-            <span>n8n Quantum Workflows Status</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {workflows.map((workflow) => (
-              <div key={workflow.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center space-x-4">
-                  {getStatusIcon(workflow.active, workflow.success_rate)}
-                  <div>
-                    <h3 className="font-medium">{workflow.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      {workflow.executions} executions • Last run: {workflow.last_execution ? formatTimeAgo(workflow.last_execution) : 'Never'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="text-right">
-                    <Badge className={getStatusColor(workflow.success_rate)}>
-                      {workflow.success_rate}% success
-                    </Badge>
-                    <div className="w-24 mt-1">
-                      <Progress value={workflow.success_rate} className="h-2" />
-                    </div>
-                  </div>
-                  <Button 
-                    variant={workflow.active ? "destructive" : "default"}
-                    size="sm"
-                  >
-                    {workflow.active ? 'Stop' : 'Start'}
-                  </Button>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">
+                  Erreur de connexion
+                </h3>
+                <div className="mt-2 text-sm text-red-700">
+                  {error}
                 </div>
               </div>
-            ))}
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        )}
 
-      {/* Quantum Providers Health */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Cpu className="h-5 w-5" />
-            <span>Quantum Providers Health</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {healthStatus.length > 0 ? (
-              healthStatus.map((provider) => (
-                <div key={provider.provider} className="border rounded-lg p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Badge className={`${provider.provider === 'ibm' ? 'bg-blue-100 text-blue-800' : 
-                                     provider.provider === 'aws' ? 'bg-orange-100 text-orange-800' :
-                                     provider.provider === 'azure' ? 'bg-purple-100 text-purple-800' :
-                                     'bg-green-100 text-green-800'}`}>
-                      {provider.provider.toUpperCase()}
-                    </Badge>
-                    {provider.up ? 
-                      <CheckCircle className="h-4 w-4 text-green-500" /> : 
-                      <XCircle className="h-4 w-4 text-red-500" />
-                    }
+        {/* Quantum Providers Status */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            📊 Statut des Providers Quantiques
+          </h2>
+          
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="mt-2 text-gray-600">Chargement du statut...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {providers.map((provider, index) => (
+                <div key={index} className="bg-white rounded-lg shadow-md p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-gray-900">{provider.provider}</h3>
+                    <div className={`w-3 h-3 rounded-full ${getStatusColor(provider.up)}`}></div>
                   </div>
-                  <div className="space-y-1 text-sm">
+                  
+                  <div className="space-y-2 text-sm text-gray-600">
                     <div className="flex justify-between">
-                      <span>Queue:</span>
-                      <span>{provider.queue_length} jobs</span>
+                      <span>Statut:</span>
+                      <span className={provider.up ? 'text-green-600' : 'text-red-600'}>
+                        {getStatusText(provider.up)}
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Latency:</span>
+                      <span>File d'attente:</span>
+                      <span>{provider.queue_length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Latence:</span>
                       <span>{provider.ping_ms}ms</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Credits:</span>
-                      <span>{provider.credits}</span>
+                      <span>Crédits:</span>
+                      <span className="font-medium text-blue-600">
+                        {provider.credits.toLocaleString()}
+                      </span>
                     </div>
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="col-span-4 text-center text-gray-500 py-8">
-                No quantum providers data available. Check n8n Health Check workflow.
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Portfolio Optimization */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            💰 Optimisation de Portfolio QAOA
+          </h2>
+          
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Configuration */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Configuration</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Symboles (séparés par des virgules)
+                    </label>
+                    <input
+                      type="text"
+                      value={portfolioConfig.tickers.join(', ')}
+                      onChange={(e) => setPortfolioConfig({
+                        ...portfolioConfig,
+                        tickers: e.target.value.split(',').map(s => s.trim())
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="AAPL, GOOGL, MSFT, AMZN"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tolérance au Risque: {portfolioConfig.risk_tolerance}
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={portfolioConfig.risk_tolerance}
+                      onChange={(e) => setPortfolioConfig({
+                        ...portfolioConfig,
+                        risk_tolerance: parseFloat(e.target.value)
+                      })}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>Conservateur</span>
+                      <span>Équilibré</span>
+                      <span>Agressif</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tier d'abonnement
+                    </label>
+                    <select
+                      value={portfolioConfig.subscription_tier}
+                      onChange={(e) => setPortfolioConfig({
+                        ...portfolioConfig,
+                        subscription_tier: e.target.value as 'free' | 'premium' | 'enterprise'
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="free">Free</option>
+                      <option value="premium">Premium</option>
+                      <option value="enterprise">Enterprise</option>
+                    </select>
+                  </div>
+                  
+                  <button
+                    onClick={optimizePortfolio}
+                    disabled={optimizing}
+                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {optimizing ? '🔬 Optimisation en cours...' : '🚀 Optimiser Portfolio'}
+                  </button>
+                </div>
               </div>
-            )}
+
+              {/* Résultats */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Résultats</h3>
+                
+                {portfolioResult ? (
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 mb-2">Allocations Optimales</h4>
+                      <div className="space-y-2">
+                        {Object.entries(portfolioResult.portfolio_optimization.allocations).map(([ticker, allocation]) => (
+                          <div key={ticker} className="flex justify-between">
+                            <span className="font-medium">{ticker}:</span>
+                            <span className="text-blue-600">{(allocation * 100).toFixed(1)}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-green-50 p-3 rounded-lg">
+                        <div className="text-sm text-green-600">Rendement Attendu</div>
+                        <div className="text-lg font-semibold text-green-800">
+                          {(portfolioResult.portfolio_optimization.expected_return * 100).toFixed(2)}%
+                        </div>
+                      </div>
+                      
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <div className="text-sm text-blue-600">Ratio de Sharpe</div>
+                        <div className="text-lg font-semibold text-blue-800">
+                          {portfolioResult.portfolio_optimization.sharpe_ratio.toFixed(3)}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="text-sm text-gray-600">
+                      <div>Temps d'exécution: {portfolioResult.execution_time}s</div>
+                      <div>Provider: {portfolioResult.provider_used}</div>
+                      <div>Backend: {portfolioResult.backend_used}</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <div className="text-4xl mb-2">📈</div>
+                    <p>Cliquez sur "Optimiser Portfolio" pour voir les résultats</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Actions rapides */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            ⚡ Actions Rapides
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              onClick={loadQuantumHealth}
+              className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+            >
+              <div className="text-2xl mb-2">🔄</div>
+              <div className="font-medium">Actualiser Status</div>
+              <div className="text-sm text-gray-600">Refresh providers</div>
+            </button>
+            
+            <button
+              onClick={() => window.open('/api/quantum?action=health', '_blank')}
+              className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+            >
+              <div className="text-2xl mb-2">🔗</div>
+              <div className="font-medium">Test API</div>
+              <div className="text-sm text-gray-600">Vérifier connexion</div>
+            </button>
+            
+            <button
+              onClick={() => alert('Feature à venir: Monitoring avancé')}
+              className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+            >
+              <div className="text-2xl mb-2">📊</div>
+              <div className="font-medium">Analytics</div>
+              <div className="text-sm text-gray-600">Métriques détaillées</div>
+            </button>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center text-gray-500 text-sm">
+          <p>🚀 Exonov Quantum - Powered by n8n Workflows & Next.js</p>
+          <p>© 2025 - Advanced AI & Quantum Computing Platform</p>
+        </div>
+      </div>
     </div>
   );
 };
