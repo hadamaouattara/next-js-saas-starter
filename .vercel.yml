@@ -1,0 +1,61 @@
+# Vercel Build Configuration
+build:
+  env:
+    NEXT_TELEMETRY_DISABLED: "1"
+    NODE_ENV: "production"
+    SKIP_PREFLIGHT_CHECK: "true"
+
+# Framework Detection
+framework: nextjs
+
+# Build Command Override
+buildCommand: npm run build
+
+# Install Command
+installCommand: npm ci
+
+# Output Directory
+outputDirectory: .next
+
+# Development Command
+devCommand: npm run dev
+
+# Node.js Version
+nodejs: 18.x
+
+# Functions Configuration  
+functions:
+  app/api/**/*.ts:
+    maxDuration: 30
+
+# Headers for CORS
+headers:
+  - source: "/api/(.*)"
+    headers:
+      - key: "Access-Control-Allow-Origin"
+        value: "*"
+      - key: "Access-Control-Allow-Methods" 
+        value: "GET, POST, PUT, DELETE, OPTIONS"
+      - key: "Access-Control-Allow-Headers"
+        value: "Content-Type, Authorization"
+
+# Redirects
+redirects:
+  - source: "/dashboard"
+    destination: "/quantum"
+    permanent: true
+
+# Environment Variables Templates
+env:
+  N8N_BASE_URL: 
+    description: "Base URL for n8n instance"
+    default: "https://exonov-u39090.vm.elestio.app"
+  
+  N8N_API_KEY:
+    description: "API key for n8n integration"
+    
+  POSTGRES_URL:
+    description: "PostgreSQL database connection string"
+    
+  AUTH_SECRET:
+    description: "Secret key for authentication"
