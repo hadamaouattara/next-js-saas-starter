@@ -1,0 +1,51 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "devCommand": "npm run dev",
+  "env": {
+    "N8N_BASE_URL": "@n8n_base_url",
+    "N8N_API_KEY": "@n8n_api_key",
+    "N8N_WEBHOOK_SECRET": "@n8n_webhook_secret",
+    "IBM_QUANTUM_TOKEN": "@ibm_quantum_token",
+    "AWS_ACCESS_KEY_ID": "@aws_access_key_id",
+    "AWS_SECRET_ACCESS_KEY": "@aws_secret_access_key",
+    "AZURE_SUBSCRIPTION_ID": "@azure_subscription_id",
+    "GOOGLE_QUANTUM_API_KEY": "@google_quantum_api_key"
+  },
+  "functions": {
+    "app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/quantum",
+      "destination": "/quantum"
+    },
+    {
+      "source": "/dashboard/quantum",
+      "destination": "/quantum"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
+        }
+      ]
+    }
+  ]
+}
